@@ -12,11 +12,48 @@ header{text-align:center;padding:15px;font-size:20px;font-weight:bold}
 input,select,button{width:100%;padding:12px;margin:6px 0;border-radius:10px;border:1px solid #ddd;font-size:16px}
 button{background:#16a34a;color:#fff;border:none}
 button.voice{background:#2563eb}
+button.print{background:#111827}
 li{background:#fff;margin:8px 0;padding:12px;border-radius:12px;border:1px solid #ddd}
 .done{text-decoration:line-through;opacity:.5}
 .meta{font-size:12px;opacity:.7}
 h3{margin:10px 0 5px}
-</style>
+
+/* PRINT MODE */
+@media print{
+body{background:#fff;color:#000}
+header,button,input,select,#status{display:none}
+#app{padding:0}
+
+h3{
+margin-top:15px;
+border-bottom:1px solid #000;
+padding-bottom:3px;
+}
+
+li{
+border:none;
+margin:10px 0;
+padding:0;
+font-size:18px;
+}
+
+li::before{
+content:"☐ ";
+font-size:18px;
+}
+
+/* Notes section */
+#notes{
+margin-top:30px;
+}
+
+.note-line{
+border-bottom:1px solid #000;
+height:20px;
+margin:8px 0;
+}
+} </style>
+
 </head>
 <body>
 
@@ -34,10 +71,22 @@ h3{margin:10px 0 5px}
 <option>Other</option>
 </select>
 
-<button onclick="add()">Add Item</button> <button class="voice" onclick="startVoice()">🎤 Voice Input</button> <button onclick="toggleMode()">Toggle Shopping Mode</button>
+<button onclick="add()">Add Item</button> <button class="voice" onclick="startVoice()">🎤 Voice Input</button> <button class="print" onclick="printList()">🖨️ Print List</button> <button onclick="toggleMode()">Toggle Shopping Mode</button>
 
 <div id="status" style="font-size:13px;opacity:.7"></div>
 <div id="list"></div>
+
+<!-- Notes section -->
+
+<div id="notes">
+<h3>Notes</h3>
+<div class="note-line"></div>
+<div class="note-line"></div>
+<div class="note-line"></div>
+<div class="note-line"></div>
+<div class="note-line"></div>
+</div>
+
 </div>
 
 <script>
@@ -76,9 +125,7 @@ function add(){
 let val=item.value.trim();
 if(!val)return;
 
-let parts=val.split(/,| and /);
-
-parts.forEach(p=>{
+val.split(/,| and /).forEach(p=>{
 let n=p.trim();
 if(n)addItem(n);
 });
@@ -128,6 +175,16 @@ status.innerText="Error: "+e.error;
 };
 
 rec.onend=()=>setTimeout(()=>status.innerText="",2000);
+}
+
+function printList(){
+let original=items;
+let filtered=items.filter(i=>!i.done);
+items=filtered;
+render();
+window.print();
+items=original;
+render();
 }
 
 document.getElementById('item').addEventListener('keydown',function(e){
