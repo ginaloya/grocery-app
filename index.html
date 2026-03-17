@@ -1,1 +1,189 @@
-<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'><title>SMART GROCERY</title><style>*{box-sizing:border-box;font-family:sans-serif}body{margin:0;background:
+<!DOCTYPE html>
+
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SMART GROCERY</title>
+<style>
+*{box-sizing:border-box;font-family:sans-serif}
+body{margin:0;background:#f1f5f9;color:#111}
+header{text-align:center;padding:15px;font-size:20px;font-weight:bold}
+#app{padding:10px}
+input,select,button{width:100%;padding:12px;margin:6px 0;border-radius:10px;border:1px solid #ddd;font-size:16px}
+button{background:#16a34a;color:#fff;border:none}
+button.voice{background:#2563eb}
+li{background:#fff;margin:8px 0;padding:12px;border-radius:12px;border:1px solid #ddd}
+.done{text-decoration:line-through;opacity:.5}
+.meta{font-size:12px;opacity:.7}
+h3{margin:10px 0 5px}
+</style>
+</head>
+<body>
+
+<header>SMART GROCERY</header>
+
+<div id="app">
+<input id="item" placeholder="Add item">
+<select id="category">
+<option>Auto</option>
+<option>Produce</option>
+<option>Dairy</option>
+<option>Meat</option>
+<option>Bakery</option>
+<option>Frozen</option>
+<option>Other</option>
+</select>
+
+<button onclick="add()">Add Item</button> <button class="voice" onclick="startVoice()">🎤 Voice Input</button> <button onclick="toggleMode()">Toggle Shopping Mode</button>
+
+<div id="status" style="font-size:13px;opacity:.7"></div>
+<div id="list"></div>
+</div>
+
+<script>
+let items=JSON.parse(localStorage.items||"[]");
+let history=JSON.parse(localStorage.history||"[]");
+let shopping=false;
+
+const autoMap={
+milk:'Dairy',cheese:'Dairy',yogurt:'Dairy',
+apple:'Produce',banana:'Produce',lettuce:'Produce',
+chicken:'Meat',beef:'Meat',
+bread:'Bakery',
+ice:'Frozen'
+};
+
+function detectCategory(name){
+let key=name.toLowerCase();
+for(let k in autoMap){
+if(key.includes(k))return autoMap[k];
+}
+return 'Other';
+}
+
+function save(){
+localStorage.items=JSON.stringify(items);
+localStorage.history=JSON.stringify(history);
+}
+
+function addItem(name){
+let cat=category.value==='Auto'?detectCategory(name):category.value;
+items.push({name,category:cat,done:false});
+if(!history.includes(name))history.push(name);
+}
+
+function add(){
+let val=item.value.trim();
+if(!val)return;
+
+let parts=val.split(/,| and /);
+
+parts.forEach(p=>{
+let n=p.trim();
+if(n)addItem(n);
+});
+
+item.value="";
+save();
+render();
+item.focus();
+}
+
+function toggle(i){
+items[i].done=!items[i].done;
+save();
+render();
+}
+
+function del(i){
+items.splice(i,1);
+save();
+render();
+}
+
+function toggleMode(){
+shopping=!shopping;
+render();
+}
+
+function startVoice(){
+let SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(!SpeechRecognition){
+status.innerText="Voice not supported";
+return;
+}
+let rec=new SpeechRecognition();
+rec.lang='en-US';
+status.innerText="Listening...";
+rec.start();
+
+rec.onresult=e=>{
+let text=e.results[0][0].transcript;
+item.value=text;
+status.innerText="Heard: "+text;
+};
+
+rec.onerror=e=>{
+status.innerText="Error: "+e.error;
+};
+
+rec.onend=()=>setTimeout(()=>status.innerText="",2000);
+}
+
+document.getElementById('item').addEventListener('keydown',function(e){
+if(e.key==='Enter'){
+e.preventDefault();
+add();
+}
+});
+
+function render(){
+list.innerHTML="";
+let grouped={};
+
+items.forEach((it,i)=>{
+if(!grouped[it.category])grouped[it.category]=[];
+grouped[it.category].push({...it,i});
+});
+
+Object.keys(grouped).forEach(cat=>{
+let section=document.createElement('div');
+section.innerHTML=`<h3>${cat}</h3>`;
+
+grouped[cat].forEach(it=>{
+if(shopping&&it.done)return;
+
+let div=document.createElement('li');
+div.innerHTML=`
+<div>
+<div class="${it.done?'done':''}" onclick="toggle(${it.i})">${it.name}</div>
+<div class=meta>${cat}</div>
+</div>
+<button onclick="del(${it.i})">✕</button>
+`;
+section.appendChild(div);
+});
+
+list.appendChild(section);
+});
+
+if(history.length){
+let suggest=document.createElement('div');
+suggest.innerHTML='<h3>Suggestions</h3>';
+
+history.slice(-5).forEach(h=>{
+let b=document.createElement('button');
+b.textContent=h;
+b.onclick=()=>{item.value=h;item.focus()};
+suggest.appendChild(b);
+});
+
+list.appendChild(suggest);
+}
+}
+
+render();
+</script>
+
+</body>
+</html>
